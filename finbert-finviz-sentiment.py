@@ -5,8 +5,7 @@ from datetime import datetime
 from typing import List, Dict
 from transformers import pipeline
 
-# Configure finviz market new url and html class references
-
+# Configure finviz market news url and html class references
 finviz_news_url = "https://finviz.com/news.ashx"
 stock_news_table_class = 'styled-table-new'
 news_link_column_class = 'news_link-cell'
@@ -42,7 +41,7 @@ def download_finviz_market_news(max_headlines: int = 0,
 
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        headlines = []
+        fetched_headlines = []
 
         # Find the news table
         news_table = soup.find('table', {'class': stock_news_table_class})
@@ -53,7 +52,7 @@ def download_finviz_market_news(max_headlines: int = 0,
 
             # for each row
             for row in rows:
-                if max_headlines > 0 and len(headlines) >= max_headlines:
+                if max_headlines > 0 and len(fetched_headlines) >= max_headlines:
                     break
 
                 # Find link column
@@ -82,9 +81,9 @@ def download_finviz_market_news(max_headlines: int = 0,
                             'timestamp': timestamp,
                         })
 
-                    headlines.append(headline_data)
+                    fetched_headlines.append(headline_data)
 
-        return headlines
+        return fetched_headlines
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data: {e}")
@@ -96,7 +95,7 @@ def download_finviz_market_news(max_headlines: int = 0,
 
 def get_headlines_as_text_list(headlines: List[Dict], max_headlines: int = 100) -> List[str]:
     """
-    Function to get the headline texts as list
+    Function to get just the headline texts as list
     """
     return [item['headline'] for item in headlines if item['headline']]
 
@@ -111,13 +110,13 @@ def save_headlines_to_csv(headlines: List[Dict], filename: str = 'finviz_headlin
         df.to_csv(filename, index=False)
         print(f"Saved {len(headlines)} headlines to {filename}")
     else:
-        print("Headlined is empty!")
+        print("Headlines is empty!")
 
 
 # Sentiment analysis on finviz data
 if __name__ == "__main__":
 
-    # EGet headlines as text list
+    # Get headlines as list
     print("Fetching news headlines with metadata...")
     headlines = download_finviz_market_news(0, True)
     print(f"\nTotal headlines: {len(headlines)}")
@@ -128,12 +127,12 @@ if __name__ == "__main__":
         print(f"URL: {item.get('url', 'N/A')}")
         print("-" * 40)
 
-    # Example 3: Save to CSV
+    # Save to CSV
     save_headlines_to_csv(headlines, 'finviz_financial_news.csv', max_headlines=50)
 
-    # Example 4: Integration with FinBERT sentiment analysis
+    # Use FinBERT to analyze the sentiment of each news headline
     print("\n" + "=" * 80)
-    print("Running FinBERT sentiment analysis on headlines...")
+    print("Running FinBERT sentiment analysis...")
 
     try:
         # Initialize FinBERT
