@@ -5,17 +5,17 @@ from datetime import datetime
 from typing import List, Dict
 from transformers import pipeline
 
-# Configure market news url and html class references
-news_url = "https://finviz.com/news.ashx"
-stock_news_table_class = 'styled-table-new'
-news_link_column_class = 'news_link-cell'
-news_date_cell_class = 'news_date-cell'
+# Configure news url and html class references
+news_url = "https://www.benzinga.com/recent"
+content_list_class = 'content-feed-list'
+news_card_class = 'post-card-text'
+post_title_class = 'post-card-title'
 
 
 def download_market_news(max_headlines: int = 0,
                                 include_metadata: bool = True) -> List[Dict]:
     """
-    Download market news headlines from Finviz
+    Download market news headlines
 
     Args:
         max_headlines: Maximum number of headlines to fetch (0 to fetch all)
@@ -44,44 +44,40 @@ def download_market_news(max_headlines: int = 0,
         fetched_headlines = []
 
         # Find the news table
-        news_table = soup.find('table', {'class': stock_news_table_class})
+        news_table = soup.find('div', {'class': content_list_class})
 
-        # Find all tr under news table
+        # Find all div under news table
         if news_table:
-            rows = news_table.find_all('tr')
+            rows = news_table.find_all('div', {'class': news_card_class})
 
             # for each row
             for row in rows:
                 if max_headlines > 0 and len(fetched_headlines) >= max_headlines:
                     break
 
-                # Find link column
-                link_cell = row.find('td', {'class': news_link_column_class})
+                # Find new div
+                link_cell = row.find('div', {'class': post_title_class})
                 if not link_cell:
                     continue
 
                 # Get headline text and link
-                link_tag = link_cell.find('a')
-                if link_tag:
-                    headline_text = link_tag.get_text(strip=True)
-                    headline_url = link_tag.get('href', '')
+                headline_url = ''
+                text_tag = link_cell.find('span')
+                if not text_tag:
+                    continue
 
-                    # Get timestamp if available
-                    time_cell = row.find('td', {'class': news_date_cell_class})
-                    timestamp = time_cell.get_text(strip=True) if time_cell else ''
+                headline_text = text_tag.get_text(strip=True)
 
-                    headline_data = {
-                        'headline': headline_text,
-                        'fetched_at': datetime.now().isoformat()
-                    }
+                headline_data = {
+                    'headline': headline_text,
+                    'fetched_at': datetime.now().isoformat()
+                }
 
-                    if include_metadata:
-                        headline_data.update({
-                            'url': headline_url,
-                            'timestamp': timestamp,
-                        })
+                if include_metadata:
+                    headline_data.update({
+                    })
 
-                    fetched_headlines.append(headline_data)
+                fetched_headlines.append(headline_data)
 
         return fetched_headlines
 
@@ -100,7 +96,7 @@ def get_headlines_as_text_list(headlines: List[Dict], max_headlines: int = 100) 
     return [item['headline'] for item in headlines if item['headline']]
 
 
-def save_headlines_to_csv(headlines: List[Dict], filename: str = 'finviz_headlines.csv',
+def save_headlines_to_csv(headlines: List[Dict], filename: str = 'benzinga_headlines.csv',
                           max_headlines: int = 100) -> None:
     """
     Save to CSV file
@@ -113,7 +109,7 @@ def save_headlines_to_csv(headlines: List[Dict], filename: str = 'finviz_headlin
         print("Headlines is empty!")
 
 
-# Sentiment analysis on finviz data
+# Sentiment analysis on news headlines
 if __name__ == "__main__":
 
     # Get headlines as list
@@ -123,12 +119,11 @@ if __name__ == "__main__":
     print("First 5 headlines...")
     for item in headlines[:5]:
         print(f"Headline: {item['headline']}")
-        print(f"Timestamp: {item.get('timestamp', 'N/A')}")
         print(f"URL: {item.get('url', 'N/A')}")
         print("-" * 40)
 
     # Save to CSV
-    save_headlines_to_csv(headlines)
+    # save_headlines_to_csv(headlines, 'benzinga_financial_news.csv')
 
     # Use FinBERT to analyze the sentiment of each news headline
     print("\n" + "=" * 80)
